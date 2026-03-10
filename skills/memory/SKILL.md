@@ -76,29 +76,35 @@ workspace/
 
 **触发时机：** AI 在每次回复用户**之后**主动执行（本轮交互结束前）
 
-> ⚠️ **重要：** 这不是自动 hook，而是 AI 应该主动调用的流程。**必须在 AI 回复内容已发送后执行**，这样才能通过 `sessions_history` 获取到完整的对话（包括刚才的回复）。
+> ⚠️ **强制要求：** 这是**每次回复必须执行**的流程，不是可选项。
+>
+> **为什么：**
+> - 这不是自动 hook，需要 AI 主动调用
+> - 必须在 AI 回复内容已发送后执行，才能获取完整对话
+> - **无额外 token 消耗** — `sessions_history` 是工具调用，不经过 LLM
 >
 > **执行顺序：**
-> 1. AI 生成并发送回复
-> 2. AI 调用 `sessions_history` 获取完整对话历史
-> 3. 提取新对话（从上次记录位置到现在）
+> 1. AI 生成并发送回复给用户
+> 2. AI 调用 `sessions_history` 获取完整会话历史
+> 3. 从 `lastMessageId` 之后提取新对话
 > 4. 追加到碎片文件
-> 5. 更新状态文件
+> 5. 更新 `fragmentization-state.json`
 
 **执行动作：**
 1. **读取状态** — `memory/fragmentization/fragmentization-state.json` 获取 `lastMessageId`
-2. **获取历史** — 调用 `sessions_history(sessionKey, limit=100)` 获取当前会话历史
-3. **提取新对话** — 从 `lastMessageId` 之后的消息开始，提取用户消息和 AI 回复
-4. **格式化记录** — `HH:mm:ss` 时间戳 + 角色 + 内容 + 元数据（频道、sessionKey）
-5. **追加到碎片文件** — `memory/fragmentization/YYYY-MM-DD HH.md`（按小时分割）
-6. **更新状态** — 写入最新的 `lastMessageId` 和 `lastRunAt`
+2. **获取 sessionKey** — 调用 `sessions_list(limit=1)` 获取当前会话 key
+3. **获取历史** — 调用 `sessions_history(sessionKey, limit=100)` 获取会话历史
+4. **提取新对话** — 从 `lastMessageId` 之后提取所有用户消息和 AI 回复
+5. **格式化记录** — `HH:mm:ss` 时间戳 + 角色 + 内容 + 元数据（频道、发件人/收件人）
+6. **追加到碎片文件** — `memory/fragmentization/YYYY-MM-DD HH.md`（按小时分割）
+7. **更新状态** — 写入最新的 `lastMessageId` 和 `lastRunAt`
 
-**数据来源：** `sessions_history` API（直接获取，不经过模型）
+**数据来源：** `sessions_history` API（直接获取，不经过模型，**无 token 消耗**）
 
 **状态文件：** `memory/fragmentization/fragmentization-state.json`
 ```json
 {
-  "lastMessageId": "消息 ID 或 timestamp",
+  "lastMessageId": "消息 timestamp 或 ID",
   "lastRunAt": "ISO-8601 时间戳"
 }
 ```
@@ -123,6 +129,12 @@ workspace/
 
 ---
 ```
+
+**注意事项：**
+- 按小时分割文件：`YYYY-MM-DD HH.md`（如 `2026-03-11 02.md`）
+- 时间使用 Asia/Shanghai 时区
+- 如果碎片文件不存在，创建新文件
+- 状态文件必须每次更新，避免重复记录
 
 ### 2. 记忆整理（手动/自动）
 
