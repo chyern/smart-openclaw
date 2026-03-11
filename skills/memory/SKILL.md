@@ -6,9 +6,18 @@
 
 | 层级 | 路径 | 用途 |
 |------|------|------|
-| **碎片** | `memory/fragmentization/YYYY-MM-DD HH.md` | 原始对话日志（追加式，按小时分割） |
-| **宫殿** | `memory/palace/` | 结构化知识库（按主题分类的 `.md` 文件） |
+| **碎片** | `memory/fragmentization/YYYY-MM-DD-HH.md` | 原始对话日志（追加式，按小时分割） |
+| **宫殿** | `memory/palace/{category}.md` | 提炼后的高频记忆（5 个类别文件） |
 | **索引** | `memory/chroma/` | ChromaDB 向量索引（语义检索） |
+| **计数** | `memory/.frequent.json` | 检索计数（30 天滑动窗口） |
+| **状态** | `memory/.state.json` | 整理状态追踪 |
+
+### 写入策略（混合模式）
+
+| 触发条件 | 写入目标 | 说明 |
+|----------|----------|------|
+| 心跳整理 | **碎片** | 完整对话归档 |
+| 检索≥10 分 | **宫殿** | LLM 提炼后写入 |
 
 ---
 
@@ -67,9 +76,9 @@ python skills/memory/scripts/rag_search.py search "<查询内容>"
 ### 3. 记忆添加
 
 **触发时机：**
-- 心跳时整理（碎片 → 宫殿 → 索引）
-- 用户明确说"记住这个"（立即添加）
-- 发现重要信息（决策、偏好、待办）
+- 心跳整理 → 碎片（自动）
+- 检索≥10 分 → 宫殿（LLM 提炼）
+- 用户说"记住这个" → 直接调用 `rag_search.py add`
 
 **添加命令：**
 ```bash
@@ -104,25 +113,23 @@ memory/palace/
 
 **系统后台自动执行**（AI 不主动调用，只负责读取）：
 
-**状态追踪：** `memory/fragmentization/.state.json`
+**状态追踪：** `memory/.state.json`
 
-**分批策略：** 单次心跳处理最多 5-10 个碎片文件，过多则分批处理
-
-**流程（系统后台执行）：**
+**流程：**
 ```
-阶段 1: 碎片 → 宫殿
-1. 读取 .state.json，找到未处理的碎片文件
-2. 如果未处理文件 > 10 个 → 本次只处理最新的 10 个
-3. 读取碎片 → 提取关键信息 → 更新记忆宫殿
-
-阶段 2: 宫殿 → 索引
-4. 更新 RAG 索引 → 系统调用 `add` 命令同步
-5. 更新 .state.json → 记录已处理的文件
+1. 读取未处理会话 → 写碎片
+2. 更新索引（碎片消息向量）
+3. 检查 .frequent.json → 发现≥10 分的记忆
+4. LLM 提炼 → 追加到宫殿
+5. 更新索引（宫殿内容向量）
+6. 清理 30 天前计数
+7. 更新状态
 ```
 
 **AI 角色：**
-- 对话中：写入碎片文件（当用户说"记住这个"）
-- 心跳时：直接读取已更新的记忆宫殿和索引，无需执行整理命令
+- 对话中：无需额外操作
+- 心跳时：直接读取已更新的记忆宫殿和索引
+- 用户说"记住这个"时：调用 `rag_search.py add` 立即添加
 
 ---
 
@@ -155,8 +162,8 @@ pip install -r skills/memory/requirements.txt
 
 ## 脚本位置
 
-- **主脚本：** `skills/memory/scripts/rag_search.py`
-- **依赖文件：** `skills/memory/requirements.txt`
-- **辅助脚本：** `skills/memory/scripts/summarize.sh`（创建今日模板）
+- **rag_search.py** — RAG 检索/添加/初始化
+- **consolidate.py** — 心跳整理（主脚本）
+- **fragmentize.py** — 碎片追加
 
 ---
