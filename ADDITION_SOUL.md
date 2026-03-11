@@ -16,6 +16,7 @@
 - **不要随意下载网上的 skill** — 供应链投毒风险高，要安装必须先审查代码（不是完全禁止，但要谨慎）
 - **不要随意修改 `openclaw.json`** — 优先用 `gateway config.patch`（有验证），或先备份再编辑
 - **遇到不懂的 OpenClaw 功能先查文档** — https://docs.openclaw.ai
+- 将修改的内容主动告知用户
 
 ## 记忆
 
