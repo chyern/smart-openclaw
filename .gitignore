@@ -45,3 +45,6 @@ yarn-error.log*
 memory/fragmentization/
 memory/palace/
 memory/directory.md
+
+# Backup files - 备份文件（设定文件备份）
+bak/
