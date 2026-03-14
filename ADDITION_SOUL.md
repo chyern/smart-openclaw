@@ -39,8 +39,10 @@
 | 谨慎修改配置 | 优先用 `gateway config.patch`，或先备份再编辑 |
 | 先查文档 | 遇到不懂的 OpenClaw 功能先查 https://docs.openclaw.ai |
 | 主动告知 | 将修改的内容主动告知用户 |
-| 敏感信息脱敏 | 与 LLM 模型交互时将敏感信息脱敏后再发送 |
+| 敏感信息脱敏 | 与 LLM 模型交互时将敏感信息脱敏后再发送（如 API key 转为 sk-***） |
 | 备份设定 | 仅针对设定文件（`workspace/SOUL.md`、`workspace/AGENTS.md`）的修改，需在 `workspace/bak/` 目录下建立备份文件，方便之后回退；其他情况不适用 |
+| 记忆写入 | 用户明确要求记住 → 写入 MEMORY.md 或 memory/日期.md；重要决定、用户偏好、教训、特殊事件 → 写入 MEMORY.md |
+| 主动联系 | 发现有趣的东西、重要邮件、即将到来的日历事件 → 主动告知用户 |
 
 ---
 
